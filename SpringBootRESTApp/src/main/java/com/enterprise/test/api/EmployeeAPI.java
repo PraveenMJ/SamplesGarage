@@ -16,6 +16,8 @@ import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RestController;
 
+import com.enterprise.test.api.exceptions.DuplicateEmployeeIDException;
+import com.enterprise.test.api.exceptions.EmployeeNotFoundException;
 import com.enterprise.test.api.model.Employee;
 
 
@@ -39,17 +41,26 @@ public class EmployeeAPI {
 	}
 
 	@GetMapping(path="/employee/{id}", produces="application/json",consumes="application/json")
-	public ResponseEntity<Employee> getEmployee(@PathVariable int id) {
+	public ResponseEntity<Employee> getEmployee(@PathVariable int id) throws Exception{
 
+		if(!map.containsKey(id)) {
+			throw new EmployeeNotFoundException("Employee with id="+id+" is not found in the system");
+		}
+		
 		LOGGER.info("fetching employee details...");
 		ResponseEntity<Employee> responseEntity = new ResponseEntity<>(map.get(id),HttpStatus.OK);
 		return responseEntity;
 	}
 	
 	@PostMapping(path="/employee", produces="application/json",consumes="application/json"  )
-	public ResponseEntity<?> createEmployee(@RequestBody Employee employee){
+	public ResponseEntity<?> createEmployee(@RequestBody Employee employee) throws Exception{
 		
+		if(map.containsKey(employee.getId())) {
+			throw new DuplicateEmployeeIDException("Employee ID Already exists in the System. Kindly input New Employee ID");					
+		}
+
 		LOGGER.info("creating employee...");
+		
 		map.put(employee.getId(), employee);
 		ResponseEntity<?> responseEntity = new ResponseEntity<>(HttpStatus.CREATED);
 		return responseEntity;
@@ -65,13 +76,18 @@ public class EmployeeAPI {
 	}
 	
 	@PutMapping(path="/employee/{id}", produces="application/json",consumes="application/json"  )
-	public ResponseEntity<?> updateEmployee(@PathVariable int id, @RequestBody Employee employee){
+	public ResponseEntity<?> updateEmployee(@PathVariable int id, @RequestBody Employee employee) throws Exception{
 		
-		LOGGER.info("updating employee...");
 		ResponseEntity<?> responseEntity = null;
+		
+		if(!map.containsKey(id)) {
+			throw new EmployeeNotFoundException("Employee with id="+id+" is not found in the system hence update cannot be done");
+		}
+
 		if(employee.getId()!=0) {
 			responseEntity = new ResponseEntity<>(HttpStatus.BAD_REQUEST);
 		}else {
+			LOGGER.info("updating employee...");
 			responseEntity = new ResponseEntity<>(HttpStatus.ACCEPTED);
 			map.put(id, employee);
 		}
